@@ -34,7 +34,8 @@ type MatchConfig struct {
 	Cvars struct {
 		Hostname string `json:"hostname"`
 	} `json:"cvars"`
-	Matchtime string `json:"matchtime"`
+	Matchtime    string `json:"matchtime"`
+	delivered bool   `json:"deliveredYet"`
 }
 
 var matchConfigs []MatchConfig
@@ -56,45 +57,52 @@ func makeMatch(rw http.ResponseWriter, req *http.Request) {
 
 			matchConfigs = append(matchConfigs, match)
 		} else {
-			json.NewEncoder(rw).Encode(fmt.Sprintf("%s vs %s which was going to be played on %s is stale, and will not be added to matchconfigs ", match.Team1.Name, match.Team2.Name,match.Matchtime))
+			json.NewEncoder(rw).Encode(fmt.Sprintf("%s vs %s which was going to be played on %s is stale, and will not be added to matchconfigs ", match.Team1.Name, match.Team2.Name, match.Matchtime))
 
 		}
-
 
 	}
 }
 
-func matchIsStale(match MatchConfig)(stale bool) {
-		when, err := getMatchTimes(match)
-		if err != nil {
-			fmt.Println(err)
+func matchIsStale(match MatchConfig) (stale bool) {
+	when, err := getMatchTimes(match)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if when < time.Hour {
+		if when < 0 {
+			return true
+		} else {
+			return false
 		}
-		if when < time.Hour {
-			if when < 0 {
-				return true
-			} else {
-				return false
-			}
 	}
 	return false
 }
 
-
-func getMatchTimes(match MatchConfig)(when time.Duration, err error) {
-		layout := "02-01-2006 15:04:05"
-		testTime := match.Matchtime
-		parsedTime, err := time.Parse(layout, testTime)
-		loc, _ := time.LoadLocation("Europe/Oslo")
-		timestamps := time.Date(parsedTime.Year(), parsedTime.Month(), parsedTime.Day(), parsedTime.Hour(), parsedTime.Minute(), parsedTime.Second(), parsedTime.Nanosecond(), loc)
-		if err != nil {
-			return
-		}
-
-		when = time.Until(timestamps)
+func getMatchTimes(match MatchConfig) (when time.Duration, err error) {
+	layout := "02-01-2006 15:04:05"
+	testTime := match.Matchtime
+	parsedTime, err := time.Parse(layout, testTime)
+	loc, _ := time.LoadLocation("Europe/Oslo")
+	timestamps := time.Date(parsedTime.Year(), parsedTime.Month(), parsedTime.Day(), parsedTime.Hour(), parsedTime.Minute(), parsedTime.Second(), parsedTime.Nanosecond(), loc)
+	if err != nil {
 		return
+	}
+
+	when = time.Until(timestamps)
+	return
 }
 
+func getSingleAvailableMatchConfig(rw http.ResponseWriter, req *http.Request) {
+	for match := range matchConfigs {
+		if !matchConfigs[match].delivered {
+			json.NewEncoder(rw).Encode(matchConfigs[match])
+			matchConfigs[match].delivered = true
 
+		}
+	}
+
+}
 
 func scheduleMatches(rw http.ResponseWriter, req *http.Request) {
 	if len(matchConfigs) <= 0 {
@@ -106,12 +114,11 @@ func scheduleMatches(rw http.ResponseWriter, req *http.Request) {
 			fmt.Println(err)
 		}
 		if matchtime < time.Hour {
-			json.NewEncoder(rw).Encode(fmt.Sprintf("%s vs %s needs to be scheduled now(%v)", matchConfigs[match].Team1,matchConfigs[match].Team2, matchtime))
- 		} else {
- 			json.NewEncoder(rw).Encode(fmt.Sprintf("%s vs %s (%v) is probably a long way away so we wont worry. yet.", matchConfigs[match].Team1.Name,matchConfigs[match].Team2.Name, matchtime))
+			json.NewEncoder(rw).Encode(fmt.Sprintf("%s vs %s needs to be scheduled now(%v)", matchConfigs[match].Team1, matchConfigs[match].Team2, matchtime))
+		} else {
+			json.NewEncoder(rw).Encode(fmt.Sprintf("%s vs %s (%v) is probably a long way away so we wont worry. yet.", matchConfigs[match].Team1.Name, matchConfigs[match].Team2.Name, matchtime))
 		}
 	}
-
 
 }
 
@@ -119,8 +126,9 @@ func main() {
 
 	http.HandleFunc("/makeMatch", makeMatch)
 
-
 	http.HandleFunc("/scheduleMatches", scheduleMatches)
+	http.HandleFunc("/getOne", getSingleAvailableMatchConfig)
+
 
 	fmt.Println("[*] listening on port 1337[*]")
 	http.ListenAndServe(":1337", nil)
