@@ -1,0 +1,47 @@
+{
+  "num_maps": 3,
+	"spectators": {
+		"players":
+		[
+			"STEAM_1:1:.....",
+			"STEAM_1:1:.....",
+			"STEAM_1:1:....."
+		]
+	},
+
+	"maplist":
+	[
+		"de_cache",
+		"de_dust2",
+		"de_inferno"
+	],
+	"team1": {
+		"name": "Ottestad",
+		"tag": "OIL",
+		"flag": "NOR",
+		"players":
+		{
+			"STEAM_0:1:52245092" : "splewis",
+			"STEAM_1:1:....." : "",
+			"STEAM_1:1:....." : "",
+			"STEAM_1:1:....." : "",
+			"STEAM_1:1:....." : ""
+		}
+	},
+
+	"team2": {
+		"name": "Ridabu",
+		"tag": "RIL",
+		"flag": "NOR",
+		"players":
+		[
+			"STEAM_1:1:46796472",
+			"STEAM_1:0:78189799",
+			"STEAM_1:0:142982",
+			"STEAM_1:1:.....",
+			"STEAM_1:1:....."
+		]
+	},
+        "matchtime": "29-08-2020 09:13:38"
+
+}
